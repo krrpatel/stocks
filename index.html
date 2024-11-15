@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Tracker</title>
+  <style>
+    /* Inline CSS */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f4f4f9;
+    }
+
+    .add-stock-form {
+      margin: 20px;
+    }
+
+    .add-stock-form input {
+      padding: 10px;
+      margin: 5px;
+    }
+
+    button {
+      padding: 10px 15px;
+    }
+
+    .stock-list {
+      width: 80%;
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+
+    .profit {
+      background-color: #d4f4dd;
+    }
+
+    .loss {
+      background-color: #f4d4d4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stock Tracker</h1>
+  <div class="add-stock-form">
+    <input type="text" id="stockSymbol" placeholder="Stock Symbol (e.g., INFY)" required>
+    <input type="number" id="buyPrice" placeholder="Buying Price" required>
+    <input type="number" id="quantity" placeholder="Quantity" required>
+    <button onclick="addStock()">Add Stock</button>
+  </div>
+  <div class="stock-list">
+    <h2>Your Stocks</h2>
+    <table id="stockTable">
+      <tr>
+        <th>Stock Name</th>
+        <th>Current Price</th>
+        <th>Profit/Loss</th>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    // JavaScript for Stock Tracker
+
+    // Load stocks from local storage when the page loads
+    document.addEventListener("DOMContentLoaded", loadStocksFromStorage);
+
+    async function addStock() {
+      const stockSymbol = document.getElementById('stockSymbol').value.toUpperCase();
+      const buyPrice = parseFloat(document.getElementById('buyPrice').value);
+      const quantity = parseInt(document.getElementById('quantity').value);
+
+      if (!stockSymbol || isNaN(buyPrice) || isNaN(quantity)) {
+        alert("Please enter valid stock information.");
+        return;
+      }
+
+      try {
+        const currentPrice = await fetchStockPrice(stockSymbol);
+        const profitOrLoss = ((currentPrice - buyPrice) * quantity).toFixed(2);
+
+        // Save stock to local storage
+        saveStockToStorage({ stockSymbol, buyPrice, quantity, currentPrice, profitOrLoss });
+        
+        // Display the stock on the page
+        displayStock(stockSymbol, currentPrice, profitOrLoss);
+      } catch (error) {
+        console.error(error);
+        alert("Error fetching stock price.");
+      }
+    }
+
+    async function fetchStockPrice(symbol) {
+      const response = await fetch(`https://live-indian-stock-price.p.rapidapi.com/api/v1/finance/stock/${symbol}/NSE`, {
+        method: "GET",
+        headers: {
+          "x-rapidapi-key": "6c3d6e932emsh3bf2b77f0c423cep17f5acjsne1336d158523",
+          "x-rapidapi-host": "live-indian-stock-price.p.rapidapi.com"
+        }
+      });
+      const data = await response.json();
+      return parseFloat(data.data);  // Extract the stock price from the `data` field
+    }
+
+    function displayStock(stockSymbol, currentPrice, profitOrLoss) {
+      const table = document.getElementById("stockTable");
+      const row = table.insertRow();
+
+      const cellSymbol = row.insertCell(0);
+      cellSymbol.textContent = stockSymbol;
+
+      const cellCurrentPrice = row.insertCell(1);
+      cellCurrentPrice.textContent = currentPrice.toFixed(2);
+
+      const cellProfitLoss = row.insertCell(2);
+      cellProfitLoss.textContent = profitOrLoss;
+      cellProfitLoss.className = profitOrLoss >= 0 ? 'profit' : 'loss';
+    }
+
+    function saveStockToStorage(stock) {
+      const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
+      stocks.push(stock);
+      localStorage.setItem('stocks', JSON.stringify(stocks));
+    }
+
+    function loadStocksFromStorage() {
+      const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
+      stocks.forEach(stock => {
+        displayStock(stock.stockSymbol, stock.currentPrice, stock.profitOrLoss);
+      });
+    }
+  </script>
+</body>
+</html>
