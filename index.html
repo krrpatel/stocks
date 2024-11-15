@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stock Tracker with Editable API Key</title>
+  <title>Stock Tracker with Total Profit/Loss</title>
   <style>
-    /* General styling */
     body {
       font-family: Arial, sans-serif;
       display: flex;
@@ -51,7 +50,12 @@
       background-color: #f4d4d4;
     }
 
-    /* Popup styling */
+    .total {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+
     .popup {
       display: none;
       position: fixed;
@@ -112,6 +116,8 @@
     </table>
   </div>
 
+  <div class="total" id="totalProfitLoss">Total Profit/Loss: ₹0.00</div>
+
   <!-- API Key Popup -->
   <div class="popup" id="apiKeyPopup">
     <h3>Edit API Key</h3>
@@ -122,10 +128,8 @@
   <div class="overlay" id="overlay" onclick="closeApiKeyPopup()"></div>
 
   <script>
-    // Load API key from local storage or set a default value
     let apiKey = localStorage.getItem('apiKey') || '6c3d6e932emsh3bf2b77f0c423cep17f5acjsne1336d158523';
 
-    // Load stocks from local storage when the page loads
     document.addEventListener("DOMContentLoaded", loadStocksFromStorage);
 
     async function addStock() {
@@ -142,12 +146,11 @@
         const currentPrice = await fetchStockPrice(stockSymbol);
         const profitOrLoss = ((currentPrice - buyPrice) * quantity).toFixed(2);
 
-        // Save stock to local storage
         const stock = { stockSymbol, buyPrice, quantity, currentPrice, profitOrLoss };
         saveStockToStorage(stock);
-        
-        // Display the stock on the page
+
         displayStock(stock);
+        updateTotalProfitLoss();
       } catch (error) {
         console.error(error);
         alert("Error fetching stock price.");
@@ -163,13 +166,12 @@
         }
       });
       const data = await response.json();
-      return parseFloat(data.data);  // Extract the stock price from the `data` field
+      return parseFloat(data.data);
     }
 
     function displayStock(stock) {
       const table = document.getElementById("stockTable");
       const row = table.insertRow();
-
       row.setAttribute('data-symbol', stock.stockSymbol);
 
       const cellSymbol = row.insertCell(0);
@@ -198,6 +200,7 @@
     function loadStocksFromStorage() {
       const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
       stocks.forEach(stock => displayStock(stock));
+      updateTotalProfitLoss();
     }
 
     function removeStock(symbol) {
@@ -209,6 +212,14 @@
       const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
       const updatedStocks = stocks.filter(stock => stock.stockSymbol !== symbol);
       localStorage.setItem('stocks', JSON.stringify(updatedStocks));
+      updateTotalProfitLoss();
+    }
+
+    function updateTotalProfitLoss() {
+      const stocks = JSON.parse(localStorage.getItem('stocks')) || [];
+      const total = stocks.reduce((acc, stock) => acc + parseFloat(stock.profitOrLoss), 0);
+      const totalElement = document.getElementById('totalProfitLoss');
+      totalElement.textContent = `Total Profit/Loss: ₹${total.toFixed(2)}`;
     }
 
     // API Key Popup Functions
